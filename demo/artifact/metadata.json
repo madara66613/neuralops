@@ -1,0 +1,45 @@
+{
+  "artifact_size_bytes": 634828,
+  "artifact_type": "pytorch-packed-bidirectional-gru",
+  "best_epoch": 22,
+  "data_manifest_sha256": "1e0cf08196471475e05f753f8ef875a0f0576d8d50f093618b5c59ec850cd19c",
+  "device": "cpu",
+  "label_mappings_sha256": "0da8a63233e57af1a332410cc6536863ed32eb0bcd810670d90158710c4e6d8a",
+  "label_provenance": "synthetic",
+  "max_sequence_length": 128,
+  "model_config_sha256": "81b4801ba3ab361457df9321f28ddead4669e06617bce917eda2f1f44713169c",
+  "model_sha256": "7dd9b374de227bd161e6335d3698b1553c450bd21e7803a9450452d49db35972",
+  "monitor": "validation_multitask_score",
+  "neuralops_version": "0.1.0",
+  "parameter_count": 157581,
+  "policy_sha256": "47914db61db4016ab59a1ba046e96e7cc371e9436577ab056162ecdb889a3531",
+  "profile": "opsforge-sim-v1-multitask",
+  "runtime": {
+    "platform": "macOS-27.0-arm64-arm-64bit",
+    "python": "3.12.6",
+    "pytorch": "2.13.0"
+  },
+  "schema_version": 1,
+  "seed": 42,
+  "source": "opsforge-sim-v1",
+  "training_settings": {
+    "batch_size": 128,
+    "category_loss_weight": 0.5,
+    "device": "cpu",
+    "epochs": 30,
+    "gradient_clip_norm": 1.0,
+    "learning_rate": 0.001,
+    "max_sequence_length": 128,
+    "minimum_coverage": 0.8,
+    "patience": 5,
+    "seed": 42,
+    "severity_loss_weight": 0.3,
+    "weight_decay": 0.0001
+  },
+  "truncated_records": {
+    "test": 0,
+    "train": 0,
+    "validation": 0
+  },
+  "vocabulary_sha256": "2effd67ff7328d6a6b0826b88a466f14d164e0b65dbd673f981b86440e3a7c67"
+}

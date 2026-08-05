@@ -1,0 +1,12 @@
+{
+  "minimum_coverage": 0.8,
+  "review_high": 0.75,
+  "review_low": 0.25,
+  "review_objective": "maximize_selective_f1_at_minimum_coverage",
+  "selected_coverage": 1.0,
+  "selected_selective_f1": 1.0,
+  "selection_split": "validation",
+  "threshold": 0.5,
+  "threshold_objective": "f1",
+  "validation_f1": 1.0
+}

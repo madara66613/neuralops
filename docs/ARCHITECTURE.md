@@ -32,6 +32,53 @@ flowchart LR
 - API fields are nullable and model metadata declares `label_provenance=synthetic`.
 - Public and synthetic metrics live in separate report sections and artifact directories.
 
+## Data preparation and experiment flow
+
+```mermaid
+flowchart TD
+    hdfs["HDFS v1 archive · MD5 verified"] --> parse["Parse block IDs and ordered event templates"]
+    sim["Seeded OpsForge Sim v1 generator"] --> parseSim["Opaque event IDs · grouped incident variants"]
+    parse --> normalize["Validate · normalize · fingerprint"]
+    parseSim --> normalize
+    normalize --> components["Connect duplicate and conflicting fingerprints"]
+    components --> splits["Stable-hash component assignment"]
+    splits --> checks["Assert group and fingerprint disjointness"]
+    checks --> train["Train split"]
+    checks --> validation["Validation split"]
+    checks --> test["Locked test split"]
+    train --> fit["Fit vocabulary, transforms, class weights"]
+    fit --> baseline["TF-IDF logistic baseline"]
+    fit --> gru["Packed bidirectional GRU"]
+    validation --> selection["Early stopping · threshold · review band"]
+    baseline --> selection
+    gru --> selection
+    selection --> locked["Restore and hash locked artifact"]
+    locked --> test
+    test --> report["One final report + error analysis"]
+```
+
+## Inference and sensitivity flow
+
+```mermaid
+sequenceDiagram
+    participant Operator
+    participant Console as React console
+    participant Proxy as nginx /api proxy
+    participant API as FastAPI
+    participant Predictor as Verified GRU predictor
+    Operator->>Console: ordered event IDs
+    Console->>Proxy: POST /api/predict/sensitivity
+    Proxy->>API: validated JSON + request ID
+    API->>Predictor: full sequence
+    Predictor->>Predictor: encode + packed GRU + locked policy
+    Predictor->>Predictor: batch leave-one-event-out ablations
+    Predictor-->>API: prediction + score deltas + provenance
+    API-->>Console: strict response + inference time
+    Console-->>Operator: decision, uncertainty, diagnostics, non-causal sensitivity
+```
+
+The Compose stack mounts a reviewed artifact read-only. The API verifies artifact hashes before `/ready` succeeds. Neither input nor model output triggers shell commands, SQL, or remediation.
+
 ## Leakage controls
 
 1. Normalize and fingerprint complete sequences before splitting.
@@ -75,4 +122,4 @@ Every publishable artifact contains:
 
 ## Serving constraints
 
-The API validates event count, event length, batch size, and body size. It returns request IDs, structured errors, model provenance, and nullable multi-task fields. `/health` proves process liveness; `/ready` only succeeds when a verified model is loaded.
+The API validates event count, event length, batch size, and body size. It returns request IDs, structured errors, software version, measured inference duration, model provenance, and nullable multi-task fields. `/health` proves process liveness; `/ready` only succeeds when a verified model is loaded. Leave-one-event-out sensitivity evaluates at most 64 positions and returns the eight largest absolute score changes; it is descriptive rather than causal.

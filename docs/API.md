@@ -23,6 +23,7 @@ Swagger UI is available at `http://127.0.0.1:8000/docs`. CORS defaults to the `l
 | GET | `/version` | Package and API schema versions |
 | GET | `/model` | Profile, label provenance, policy, labels, hashes, and runtime metadata |
 | POST | `/predict` | One event sequence |
+| POST | `/predict/sensitivity` | One prediction plus bounded leave-one-event-out score changes |
 | POST | `/predict/batch` | Up to 64 event sequences |
 
 ## Request example
@@ -34,7 +35,9 @@ curl --fail-with-body http://127.0.0.1:8000/predict \
   --data '{"events":["E001","E012","E104","E207","E104","E431","P07","E087","E099"]}'
 ```
 
-Responses contain raw anomaly probability, the validation-selected decision, manual-review status, input diagnostics, profile, and label provenance. `confidence` is the raw probability of the selected binary outcome and is explicitly marked **not calibrated**. Category and severity are nullable: they appear only for predicted anomalies from an artifact with auxiliary heads.
+Responses contain software version, measured model inference time, raw anomaly probability, the validation-selected decision, manual-review status, input diagnostics, profile, and label provenance. `confidence` is the raw probability of the selected binary outcome and is explicitly marked **not calibrated**. Category and severity are nullable: they appear only for predicted anomalies from an artifact with auxiliary heads.
+
+`/predict/sensitivity` removes each of at most the first 64 event positions, scores those ablations as one synchronized batch, and returns the eight largest absolute changes from the full-sequence anomaly probability. Repeated tokens retain separate positions. A positive delta means removing that event lowered the anomaly score; a negative delta means removal raised it. This is local model sensitivity, not causal attribution or root-cause evidence.
 
 ## Limits
 

@@ -1,0 +1,332 @@
+{
+  "test": {
+    "binary": {
+      "confusion_matrix": {
+        "fn": 0,
+        "fp": 0,
+        "tn": 465,
+        "tp": 341
+      },
+      "f1": 1.0,
+      "false_negative_rate": 0.0,
+      "false_positive_rate": 0.0,
+      "pr_auc": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "roc_auc": 1.0,
+      "samples": 806,
+      "threshold": 0.5
+    },
+    "category": {
+      "accuracy": 1.0,
+      "classes": [
+        "authentication_failure",
+        "cache_degradation",
+        "database_contention",
+        "deployment_regression",
+        "inventory_sync_failure",
+        "message_queue_backlog",
+        "payment_gateway_failure",
+        "resource_exhaustion",
+        "service_dependency_timeout"
+      ],
+      "confusion_matrix": [
+        [
+          24,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          42,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          39,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          27,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          27,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          36,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          51,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          41,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          54
+        ]
+      ],
+      "macro_f1": 1.0,
+      "samples": 341,
+      "weighted_f1": 1.0
+    },
+    "severity": {
+      "accuracy": 0.6891495601173021,
+      "classes": [
+        "high",
+        "low",
+        "medium"
+      ],
+      "confusion_matrix": [
+        [
+          66,
+          23,
+          28
+        ],
+        [
+          6,
+          95,
+          6
+        ],
+        [
+          26,
+          17,
+          74
+        ]
+      ],
+      "macro_f1": 0.6856184110306733,
+      "samples": 341,
+      "weighted_f1": 0.6827003595376681
+    }
+  },
+  "validation": {
+    "binary": {
+      "confusion_matrix": {
+        "fn": 0,
+        "fp": 0,
+        "tn": 453,
+        "tp": 366
+      },
+      "f1": 1.0,
+      "false_negative_rate": 0.0,
+      "false_positive_rate": 0.0,
+      "pr_auc": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "roc_auc": 1.0,
+      "samples": 819,
+      "threshold": 0.5
+    },
+    "category": {
+      "accuracy": 1.0,
+      "classes": [
+        "authentication_failure",
+        "cache_degradation",
+        "database_contention",
+        "deployment_regression",
+        "inventory_sync_failure",
+        "message_queue_backlog",
+        "payment_gateway_failure",
+        "resource_exhaustion",
+        "service_dependency_timeout"
+      ],
+      "confusion_matrix": [
+        [
+          48,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          39,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          27,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          51,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          30,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          48,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          42,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          39,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          42
+        ]
+      ],
+      "macro_f1": 1.0,
+      "samples": 366,
+      "weighted_f1": 1.0
+    },
+    "severity": {
+      "accuracy": 0.726775956284153,
+      "classes": [
+        "high",
+        "low",
+        "medium"
+      ],
+      "confusion_matrix": [
+        [
+          98,
+          14,
+          32
+        ],
+        [
+          6,
+          106,
+          5
+        ],
+        [
+          23,
+          20,
+          62
+        ]
+      ],
+      "macro_f1": 0.718664364487545,
+      "samples": 366,
+      "weighted_f1": 0.7226359277727384
+    }
+  }
+}

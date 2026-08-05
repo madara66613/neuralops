@@ -1,11 +1,13 @@
 {
   "name": "neuralops-console",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "lint": "biome lint src tests vite.config.ts playwright.config.ts",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test"
@@ -15,6 +17,7 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.7",
     "@playwright/test": "^1.62.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

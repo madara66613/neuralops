@@ -4,7 +4,10 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./styles.css";
 
-createRoot(document.getElementById("root")!).render(
+const root = document.getElementById("root");
+if (!root) throw new Error("NeuralOps root element is missing");
+
+createRoot(root).render(
   <StrictMode>
     <App />
   </StrictMode>,

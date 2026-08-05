@@ -14,11 +14,14 @@ const model = {
 };
 
 test.beforeEach(async ({ page }) => {
+  page.on("console", (message) => {
+    if (message.type() === "error") throw new Error(`Browser console error: ${message.text()}`);
+  });
   await page.route(/http:\/\/(localhost|127\.0\.0\.1):8000\/.*/, async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path === "/health") return route.fulfill({ json: { status: "ok" } });
     if (path === "/model") return route.fulfill({ json: { model } });
-    if (path === "/predict") {
+    if (path === "/predict/sensitivity") {
       return route.fulfill({
         json: {
           prediction: {
@@ -39,6 +42,21 @@ test.beforeEach(async ({ page }) => {
             profile: "opsforge-sim-v1-multitask",
             label_provenance: "synthetic",
           },
+          method: "leave_one_event_out_probability_sensitivity",
+          interpretation: "Descriptive model sensitivity; not causal.",
+          input_event_count: 9,
+          evaluated_event_count: 9,
+          evaluation_limited: false,
+          evidence: [
+            {
+              event_index: 2,
+              event: "E104",
+              anomaly_probability_without_event: 0.72,
+              anomaly_probability_delta: 0.272,
+              absolute_delta: 0.272,
+              effect: "supports_anomaly",
+            },
+          ],
         },
       });
     }
@@ -78,6 +96,7 @@ test("analyzes a sample and exposes provenance", async ({ page }) => {
   await page.getByRole("button", { name: "Analyze sequence" }).click();
   await expect(page.getByText("Anomaly detected")).toBeVisible();
   await expect(page.getByText("Authentication Failure")).toBeVisible();
+  await expect(page.getByText("Leave-one-out score change")).toBeVisible();
   await expect(page.getByText("Public binary ≠ synthetic multi-task")).toBeVisible();
 });
 

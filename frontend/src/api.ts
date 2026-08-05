@@ -1,4 +1,4 @@
-import type { ApiErrorBody, ModelInfo, Prediction } from "./types";
+import type { ApiErrorBody, ModelInfo, Prediction, SensitivityResult } from "./types";
 
 const browserDefault = `${window.location.protocol}//${window.location.hostname}:8000`;
 const API_URL = (import.meta.env.VITE_API_URL ?? browserDefault).replace(/\/$/, "");
@@ -45,6 +45,13 @@ export async function predict(events: string[]): Promise<Prediction> {
     body: JSON.stringify({ events }),
   });
   return result.prediction;
+}
+
+export async function predictWithSensitivity(events: string[]): Promise<SensitivityResult> {
+  return request<SensitivityResult>("/predict/sensitivity", {
+    method: "POST",
+    body: JSON.stringify({ events }),
+  });
 }
 
 export async function predictBatch(sequences: string[][]): Promise<Prediction[]> {

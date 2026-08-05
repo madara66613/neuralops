@@ -52,6 +52,16 @@ def build_parser() -> argparse.ArgumentParser:
     benchmark.add_argument("--batch-size", type=int, default=32)
     benchmark.add_argument("--device", default="auto")
 
+    errors = subparsers.add_parser(
+        "analyze-errors", help="summarize false positives and false negatives"
+    )
+    errors.add_argument("--artifact", type=Path, required=True)
+    errors.add_argument("--processed-dir", type=Path, required=True)
+    errors.add_argument("--split", choices=("validation", "test"), default="test")
+    errors.add_argument("--batch-size", type=int, default=256)
+    errors.add_argument("--device", default="cpu")
+    errors.add_argument("--output", type=Path)
+
     predict = subparsers.add_parser("predict", help="predict one event sequence")
     predict.add_argument("--artifact", type=Path, required=True)
     predict.add_argument("--events", nargs="+", required=True)
@@ -218,6 +228,21 @@ def main() -> None:
             batch_size=args.batch_size,
             requested_device=args.device,
         )
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return
+    if args.command == "analyze-errors":
+        from neuralops.data.io import write_json
+        from neuralops.modeling.error_analysis import analyze_errors
+
+        result = analyze_errors(
+            args.artifact,
+            args.processed_dir,
+            split=args.split,
+            requested_device=args.device,
+            batch_size=args.batch_size,
+        )
+        if args.output:
+            write_json(args.output, result)
         print(json.dumps(result, indent=2, sort_keys=True))
         return
     if args.command == "predict":

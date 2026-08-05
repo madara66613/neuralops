@@ -53,7 +53,26 @@ describe("NeuralOps console", () => {
         const url = String(input);
         if (url.endsWith("/health")) return response({ status: "ok" });
         if (url.endsWith("/model")) return response({ model });
-        if (url.endsWith("/predict")) return response({ prediction: anomalyPrediction });
+        if (url.endsWith("/predict/sensitivity")) {
+          return response({
+            prediction: anomalyPrediction,
+            method: "leave_one_event_out_probability_sensitivity",
+            interpretation: "Descriptive model sensitivity; not causal.",
+            input_event_count: 9,
+            evaluated_event_count: 9,
+            evaluation_limited: false,
+            evidence: [
+              {
+                event_index: 2,
+                event: "E104",
+                anomaly_probability_without_event: 0.72,
+                anomaly_probability_delta: 0.271,
+                absolute_delta: 0.271,
+                effect: "supports_anomaly",
+              },
+            ],
+          });
+        }
         return response({}, 404);
       }),
     );
@@ -76,9 +95,11 @@ describe("NeuralOps console", () => {
     expect(screen.getByText("Authentication Failure")).toBeInTheDocument();
     expect(screen.getAllByText("99.1%")).toHaveLength(2);
     expect(screen.getByText("Synthetic", { exact: true })).toBeInTheDocument();
+    expect(screen.getByText("Leave-one-out score change")).toBeInTheDocument();
+    expect(screen.getByText("#3 E104")).toBeInTheDocument();
   });
 
-  it("renders a safe API error with request context", async () => {
+  it("renders a structured validation error with request context", async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockImplementation((input) => {
       const url = String(input);
@@ -87,15 +108,50 @@ describe("NeuralOps console", () => {
       return response(
         {
           request_id: "req-failed",
-          error: { code: "MODEL_NOT_READY", message: "Model artifact is not ready" },
+          error: { code: "VALIDATION_ERROR", message: "Request validation failed" },
         },
-        503,
+        422,
       );
     });
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole("button", { name: "Analyze sequence" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Model artifact is not ready");
-    expect(screen.getByRole("alert")).toHaveTextContent("MODEL_NOT_READY · req-failed");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Request validation failed");
+    expect(screen.getByRole("alert")).toHaveTextContent("VALIDATION_ERROR · req-failed");
+  });
+
+  it("renders the validation-selected manual-review state", async () => {
+    const reviewPrediction: Prediction = {
+      ...anomalyPrediction,
+      predicted_anomaly: false,
+      anomaly_probability: 0.55,
+      confidence: 0.45,
+      decision: "manual_review",
+      manual_review: true,
+      category: null,
+      category_confidence: null,
+      severity: null,
+      severity_confidence: null,
+    };
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockImplementation((input) => {
+      const url = String(input);
+      if (url.endsWith("/health")) return response({ status: "ok" });
+      if (url.endsWith("/model")) return response({ model });
+      return response({
+        prediction: reviewPrediction,
+        method: "leave_one_event_out_probability_sensitivity",
+        interpretation: "Descriptive model sensitivity; not causal.",
+        input_event_count: 6,
+        evaluated_event_count: 6,
+        evaluation_limited: false,
+        evidence: [],
+      });
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole("button", { name: "Analyze sequence" }));
+    expect(await screen.findByText("Manual review")).toBeInTheDocument();
+    expect(screen.getByText(/uncertainty band/i)).toBeInTheDocument();
   });
 });

@@ -29,17 +29,20 @@ The client derives the API host from the browser host and uses port 8000. Set `V
 - Four samples expose normal, authentication, resource-pressure, and unknown-token behavior.
 - Empty, loading, API error, and offline states are explicit and retain actionable copy.
 - Prediction cards disclose decision, anomaly probability, raw outcome confidence, nullable category and severity, unknown events, truncation, profile, and label provenance.
+- Single-sequence results rank leave-one-event-out probability changes and explicitly label them descriptive rather than causal.
 - Artifact identity, SHA-256 prefix, parameter count, runtime, and locked threshold remain visible above inference controls.
 
 ## Accessibility and responsive QA
 
 Tabs, samples, the editor, and submission controls use semantic elements and visible focus states. Dynamic results use polite live regions; the probability graphic has a textual accessible label. The layout was manually inspected at 1440×1000 and 390×844 with no clipping or horizontal overflow.
 
-Automated coverage includes Vitest component tests and Playwright Chromium tests for the primary sample flow, provenance disclosure, batch inference, and keyboard submission:
+Automated coverage includes Biome lint, TypeScript checking, Vitest component tests, and Playwright Chromium tests for the primary sample flow, sensitivity evidence, provenance disclosure, batch inference, and keyboard submission:
 
 ```bash
 cd frontend
 npm test
+npm run lint
+npm run typecheck
 npm run build
 npm run test:e2e
 ```
