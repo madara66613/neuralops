@@ -1,0 +1,115 @@
+{
+  "artifact": {
+    "artifact_size_bytes": 608544,
+    "artifact_type": "pytorch-packed-bidirectional-gru",
+    "best_epoch": 27,
+    "max_sequence_length": 128,
+    "model_sha256": "fbc444909e91a1c8a33d885ee0be3b73367870bc8f7ab0817791070fd41ca1bc",
+    "parameter_count": 151233,
+    "truncated_records": {
+      "test": 8,
+      "train": 29,
+      "validation": 4
+    }
+  },
+  "baseline_comparison": {
+    "baseline_test_f1": 0.9655688622754491,
+    "baseline_test_pr_auc": 0.993398403251326,
+    "gru_test_f1": 0.9879336349924586,
+    "gru_test_pr_auc": 0.9989935365790357,
+    "test_f1_absolute_delta": 0.0223647727170095,
+    "test_pr_auc_absolute_delta": 0.0055951333277097
+  },
+  "benchmarks": {
+    "batch_1": {
+      "iterations": 200,
+      "latency_ms_per_batch": {
+        "mean": 0.27781767,
+        "p50": 0.265417,
+        "p95": 0.3499913499999999,
+        "p99": 0.4177296699999994
+      },
+      "throughput_sequences_per_second": 3596.8123035151357,
+      "warmup_iterations": 20
+    },
+    "batch_32": {
+      "iterations": 200,
+      "latency_ms_per_batch": {
+        "mean": 4.8606726799999995,
+        "p50": 4.202666499999999,
+        "p95": 6.238904499999999,
+        "p99": 19.330891989999905
+      },
+      "throughput_sequences_per_second": 6582.435206503571,
+      "warmup_iterations": 20
+    },
+    "context": {
+      "device": "cpu",
+      "platform": "macOS-27.0-arm64-arm-64bit",
+      "python": "3.12.6",
+      "pytorch": "2.13.0",
+      "synchronization": "backend synchronized after every batch"
+    }
+  },
+  "data": {
+    "data_manifest_sha256": "e7988f9631881a48a73d34d57a8e3042dac2a8e661ff76c73b0cc8b9d6d3e27f",
+    "profile": "hdfs-v1-deduplicated-sequence",
+    "seed": 42,
+    "source": "loghub-hdfs-v1",
+    "test_samples": 2740,
+    "train_samples": 12838,
+    "validation_samples": 2805
+  },
+  "generated_on": "2026-08-05",
+  "metrics": {
+    "test": {
+      "confusion_matrix": {
+        "fn": 4,
+        "fp": 12,
+        "tn": 2069,
+        "tp": 655
+      },
+      "f1": 0.9879336349924586,
+      "false_negative_rate": 0.006069802731411229,
+      "false_positive_rate": 0.005766458433445459,
+      "pr_auc": 0.9989935365790357,
+      "precision": 0.9820089955022488,
+      "recall": 0.9939301972685888,
+      "roc_auc": 0.9996809780520192,
+      "samples": 2740,
+      "threshold": 0.8597967624664307
+    },
+    "validation": {
+      "f1": 0.9878147847278635,
+      "pr_auc": 0.9990104115024732,
+      "precision": 0.9838187702265372,
+      "recall": 0.9918433931484503,
+      "roc_auc": 0.9997212911253736,
+      "samples": 2805
+    }
+  },
+  "policy": {
+    "minimum_coverage": 0.8,
+    "review_high": 0.9897967624664307,
+    "review_low": 0.7297967624664307,
+    "selected_coverage": 0.9800356506238859,
+    "selected_selective_f1": 0.9956255468066492,
+    "selection_split": "validation",
+    "threshold": 0.8597967624664307
+  },
+  "reproduce": [
+    "neuralops train --config configs/hdfs-binary.yaml --artifact artifacts/hdfs-v1-deduplicated/gru --device cpu",
+    "neuralops evaluate --artifact artifacts/hdfs-v1-deduplicated/gru --processed-dir data/processed/hdfs-v1 --split test --device cpu",
+    "neuralops benchmark --artifact artifacts/hdfs-v1-deduplicated/gru --processed-dir data/processed/hdfs-v1 --iterations 200 --warmup 20 --batch-size 1 --device cpu",
+    "neuralops benchmark --artifact artifacts/hdfs-v1-deduplicated/gru --processed-dir data/processed/hdfs-v1 --iterations 200 --warmup 20 --batch-size 32 --device cpu"
+  ],
+  "schema_version": 1,
+  "training": {
+    "batch_size": 128,
+    "epochs_completed": 30,
+    "gradient_clip_norm": 1.0,
+    "learning_rate": 0.001,
+    "monitor": "validation_pr_auc",
+    "weight_decay": 0.0001
+  }
+}

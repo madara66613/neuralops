@@ -31,6 +31,26 @@ def build_parser() -> argparse.ArgumentParser:
     baseline.add_argument("--config", type=Path, required=True)
     baseline.add_argument("--processed-dir", type=Path)
     baseline.add_argument("--artifact", type=Path, required=True)
+
+    train = subparsers.add_parser("train", help="train packed PyTorch GRU")
+    train.add_argument("--config", type=Path, required=True)
+    train.add_argument("--processed-dir", type=Path)
+    train.add_argument("--artifact", type=Path, required=True)
+    train.add_argument("--device")
+
+    evaluate = subparsers.add_parser("evaluate", help="evaluate a locked GRU artifact")
+    evaluate.add_argument("--artifact", type=Path, required=True)
+    evaluate.add_argument("--processed-dir", type=Path, required=True)
+    evaluate.add_argument("--split", choices=("validation", "test"), default="test")
+    evaluate.add_argument("--device", default="auto")
+
+    benchmark = subparsers.add_parser("benchmark", help="measure GRU inference performance")
+    benchmark.add_argument("--artifact", type=Path, required=True)
+    benchmark.add_argument("--processed-dir", type=Path, required=True)
+    benchmark.add_argument("--iterations", type=int, default=100)
+    benchmark.add_argument("--warmup", type=int, default=10)
+    benchmark.add_argument("--batch-size", type=int, default=32)
+    benchmark.add_argument("--device", default="auto")
     return parser
 
 
@@ -82,6 +102,45 @@ def _train_baseline(args: argparse.Namespace) -> dict[str, Any]:
     )
 
 
+def _train_gru(args: argparse.Namespace) -> dict[str, Any]:
+    from neuralops.config import load_config, nested
+    from neuralops.data.io import read_json
+    from neuralops.modeling.gru import GRUConfig
+    from neuralops.modeling.training import TrainingSettings, train_gru
+
+    config = load_config(args.config)
+    processed_dir = args.processed_dir or Path(str(nested(config, "data", "processed_dir")))
+    vocabulary = read_json(processed_dir / "vocabulary.json")
+    if not isinstance(vocabulary, dict):
+        raise ValueError("Prepared vocabulary must be an object")
+    model_config = GRUConfig(
+        vocabulary_size=len(vocabulary),
+        embedding_dim=int(nested(config, "model", "embedding_dim")),
+        hidden_dim=int(nested(config, "model", "hidden_dim")),
+        layers=int(nested(config, "model", "layers")),
+        bidirectional=bool(nested(config, "model", "bidirectional")),
+        dropout=float(nested(config, "model", "dropout")),
+    )
+    settings = TrainingSettings(
+        seed=int(config["seed"]),
+        batch_size=int(nested(config, "training", "batch_size")),
+        epochs=int(nested(config, "training", "epochs")),
+        patience=int(nested(config, "training", "patience")),
+        learning_rate=float(nested(config, "training", "learning_rate")),
+        weight_decay=float(nested(config, "training", "weight_decay")),
+        gradient_clip_norm=float(nested(config, "training", "gradient_clip_norm")),
+        max_sequence_length=int(nested(config, "model", "max_sequence_length")),
+        device=args.device or str(nested(config, "training", "device")),
+        minimum_coverage=float(nested(config, "evaluation", "minimum_selective_coverage")),
+    )
+    return train_gru(
+        processed_dir,
+        args.artifact,
+        model_config=model_config,
+        settings=settings,
+    )
+
+
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
@@ -100,6 +159,33 @@ def main() -> None:
         return
     if args.command == "train-baseline":
         print(json.dumps(_train_baseline(args), indent=2, sort_keys=True))
+        return
+    if args.command == "train":
+        print(json.dumps(_train_gru(args), indent=2, sort_keys=True))
+        return
+    if args.command == "evaluate":
+        from neuralops.modeling.training import evaluate_artifact
+
+        result = evaluate_artifact(
+            args.artifact,
+            args.processed_dir,
+            split=args.split,
+            requested_device=args.device,
+        )
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return
+    if args.command == "benchmark":
+        from neuralops.modeling.benchmark import benchmark_artifact
+
+        result = benchmark_artifact(
+            args.artifact,
+            args.processed_dir,
+            iterations=args.iterations,
+            warmup=args.warmup,
+            batch_size=args.batch_size,
+            requested_device=args.device,
+        )
+        print(json.dumps(result, indent=2, sort_keys=True))
         return
     parser.print_help()
 

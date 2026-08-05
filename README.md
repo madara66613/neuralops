@@ -21,8 +21,9 @@ Development is organized as small reviewable milestone pull requests. M0 establi
 | Profile | Model | Test samples | Precision | Recall | F1 | PR-AUC | ROC-AUC |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | HDFS v1 deduplicated sequence | TF-IDF + logistic regression | 2,740 | 0.9527 | 0.9788 | 0.9656 | 0.9934 | 0.9981 |
+| HDFS v1 deduplicated sequence | Packed bi-GRU | 2,740 | 0.9820 | 0.9939 | 0.9879 | 0.9990 | 0.9997 |
 
-These are not conventional all-block HDFS numbers: 575,061 block traces were reduced to 18,383 deterministic `(fingerprint, label)` representatives before splitting. Exact values, confusion matrix, hashes, environment, and reproduction commands are in [the machine-readable baseline report](reports/hdfs-v1-deduplicated-baseline.json).
+These are not conventional all-block HDFS numbers: 575,061 block traces were reduced to 18,383 deterministic `(fingerprint, label)` representatives before splitting. Exact values, confusion matrices, hashes, environment, and reproduction commands are in the machine-readable [baseline](reports/hdfs-v1-deduplicated-baseline.json) and [GRU](reports/hdfs-v1-deduplicated-gru.json) reports.
 
 ## Research contract
 
@@ -43,6 +44,12 @@ neuralops prepare --config configs/hdfs-binary.yaml
 neuralops train-baseline --config configs/hdfs-binary.yaml
 neuralops train-baseline --config configs/hdfs-binary.yaml \
   --artifact artifacts/hdfs-v1-deduplicated/baseline
+neuralops train --config configs/hdfs-binary.yaml \
+  --artifact artifacts/hdfs-v1-deduplicated/gru --device cpu
+neuralops evaluate --artifact artifacts/hdfs-v1-deduplicated/gru \
+  --processed-dir data/processed/hdfs-v1 --split test --device cpu
+neuralops benchmark --artifact artifacts/hdfs-v1-deduplicated/gru \
+  --processed-dir data/processed/hdfs-v1 --batch-size 32 --device cpu
 ```
 
 Neural training, evaluation, prediction, benchmarking, and serving commands land in subsequent milestones and are validated before the first release.
