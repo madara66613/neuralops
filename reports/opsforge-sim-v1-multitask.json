@@ -1,0 +1,118 @@
+{
+  "artifact": {
+    "artifact_size_bytes": 634828,
+    "artifact_type": "pytorch-packed-bidirectional-gru",
+    "best_epoch": 22,
+    "label_provenance": "synthetic",
+    "model_sha256": "7dd9b374de227bd161e6335d3698b1553c450bd21e7803a9450452d49db35972",
+    "parameter_count": 157581
+  },
+  "data": {
+    "data_manifest_sha256": "1e0cf08196471475e05f753f8ef875a0f0576d8d50f093618b5c59ec850cd19c",
+    "deduplication": {
+      "input_records": 6000,
+      "output_records": 5615,
+      "removed_records": 385
+    },
+    "profile": "opsforge-sim-v1-multitask",
+    "seed": 42,
+    "source": "opsforge-sim-v1",
+    "test_records": 806,
+    "train_records": 3990,
+    "validation_records": 819
+  },
+  "generated_on": "2026-08-05",
+  "interpretation": "Synthetic product-behavior evidence only; not real-world generalization evidence.",
+  "metrics": {
+    "test": {
+      "binary": {
+        "confusion_matrix": {
+          "fn": 0,
+          "fp": 0,
+          "tn": 465,
+          "tp": 341
+        },
+        "f1": 1.0,
+        "false_negative_rate": 0.0,
+        "false_positive_rate": 0.0,
+        "pr_auc": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "roc_auc": 1.0,
+        "samples": 806,
+        "threshold": 0.5
+      },
+      "category": {
+        "accuracy": 1.0,
+        "classes": [
+          "authentication_failure",
+          "cache_degradation",
+          "database_contention",
+          "deployment_regression",
+          "inventory_sync_failure",
+          "message_queue_backlog",
+          "payment_gateway_failure",
+          "resource_exhaustion",
+          "service_dependency_timeout"
+        ],
+        "confusion_matrix": [
+          [24, 0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 42, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 39, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 27, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 27, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 36, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 51, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 41, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0, 54]
+        ],
+        "macro_f1": 1.0,
+        "samples": 341,
+        "weighted_f1": 1.0
+      },
+      "severity": {
+        "accuracy": 0.6891495601173021,
+        "classes": ["high", "low", "medium"],
+        "confusion_matrix": [
+          [66, 23, 28],
+          [6, 95, 6],
+          [26, 17, 74]
+        ],
+        "macro_f1": 0.6856184110306733,
+        "samples": 341,
+        "weighted_f1": 0.6827003595376681
+      }
+    },
+    "validation": {
+      "binary_f1": 1.0,
+      "binary_pr_auc": 1.0,
+      "category_macro_f1": 1.0,
+      "severity_macro_f1": 0.718664364487545
+    }
+  },
+  "policy": {
+    "review_high": 0.75,
+    "review_low": 0.25,
+    "selected_coverage": 1.0,
+    "selection_split": "validation",
+    "threshold": 0.5
+  },
+  "reproduce": [
+    "neuralops prepare --config configs/opsforge-sim.yaml",
+    "neuralops train --config configs/opsforge-sim.yaml --artifact artifacts/opsforge-sim-v1/multitask-gru --device cpu",
+    "neuralops evaluate --artifact artifacts/opsforge-sim-v1/multitask-gru --processed-dir data/processed/opsforge-sim-v1 --split test --device cpu"
+  ],
+  "runtime": {
+    "device": "cpu",
+    "platform": "macOS-27.0-arm64-arm-64bit",
+    "python": "3.12.6",
+    "pytorch": "2.13.0"
+  },
+  "schema_version": 1,
+  "training": {
+    "category_loss_weight": 0.5,
+    "epochs_completed": 27,
+    "monitor": "validation_multitask_score",
+    "severity_loss_weight": 0.3
+  }
+}

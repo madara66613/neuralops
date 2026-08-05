@@ -17,7 +17,7 @@ NeuralOps v1.0 is complete only when all criteria below are evidenced by automat
 - [x] Seeds, device choice, early stopping, gradient clipping, and training history are recorded.
 - [x] Threshold and review band are selected exclusively on validation.
 - [x] Binary precision, recall, F1, PR-AUC, ROC-AUC, FPR, and FNR are reported on test.
-- [ ] Synthetic category metrics include macro/weighted F1 and a confusion matrix.
+- [x] Synthetic category metrics include macro/weighted F1 and a confusion matrix.
 - [x] Parameter count, artifact size, latency, and throughput include measurement context.
 
 ## Product and quality

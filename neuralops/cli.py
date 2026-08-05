@@ -71,11 +71,18 @@ def _prepare(args: argparse.Namespace) -> dict[str, Any]:
 
     config = load_config(args.config)
     source = str(nested(config, "task", "source"))
-    if source != "loghub-hdfs-v1":
-        raise ValueError("M1 preparation currently supports task.source=loghub-hdfs-v1")
-    raw_dir = args.raw_dir or Path(str(nested(config, "data", "raw_dir")))
     output_dir = args.output_dir or Path(str(nested(config, "data", "processed_dir")))
-    records = load_hdfs_records(raw_dir)
+    if source == "loghub-hdfs-v1":
+        raw_dir = args.raw_dir or Path(str(nested(config, "data", "raw_dir")))
+        records = load_hdfs_records(raw_dir)
+    elif source == "opsforge-sim-v1":
+        from neuralops.data.synthetic import generate_synthetic_records
+
+        records = generate_synthetic_records(
+            int(nested(config, "data", "synthetic_samples")), seed=int(config["seed"])
+        )
+    else:
+        raise ValueError(f"Unsupported task.source: {source}")
     return prepare_dataset(
         records,
         output_dir,
@@ -104,7 +111,7 @@ def _train_baseline(args: argparse.Namespace) -> dict[str, Any]:
 
 def _train_gru(args: argparse.Namespace) -> dict[str, Any]:
     from neuralops.config import load_config, nested
-    from neuralops.data.io import read_json
+    from neuralops.data.io import read_json, read_records
     from neuralops.modeling.gru import GRUConfig
     from neuralops.modeling.training import TrainingSettings, train_gru
 
@@ -113,6 +120,17 @@ def _train_gru(args: argparse.Namespace) -> dict[str, Any]:
     vocabulary = read_json(processed_dir / "vocabulary.json")
     if not isinstance(vocabulary, dict):
         raise ValueError("Prepared vocabulary must be an object")
+    train_records = read_records(processed_dir / "splits" / "train.jsonl")
+    category_classes = (
+        len({record.category for record in train_records if record.category is not None})
+        if bool(nested(config, "task", "category_head"))
+        else 0
+    )
+    severity_classes = (
+        len({record.severity for record in train_records if record.severity is not None})
+        if bool(nested(config, "task", "severity_head"))
+        else 0
+    )
     model_config = GRUConfig(
         vocabulary_size=len(vocabulary),
         embedding_dim=int(nested(config, "model", "embedding_dim")),
@@ -120,6 +138,8 @@ def _train_gru(args: argparse.Namespace) -> dict[str, Any]:
         layers=int(nested(config, "model", "layers")),
         bidirectional=bool(nested(config, "model", "bidirectional")),
         dropout=float(nested(config, "model", "dropout")),
+        category_classes=category_classes,
+        severity_classes=severity_classes,
     )
     settings = TrainingSettings(
         seed=int(config["seed"]),
@@ -132,6 +152,8 @@ def _train_gru(args: argparse.Namespace) -> dict[str, Any]:
         max_sequence_length=int(nested(config, "model", "max_sequence_length")),
         device=args.device or str(nested(config, "training", "device")),
         minimum_coverage=float(nested(config, "evaluation", "minimum_selective_coverage")),
+        category_loss_weight=float(config["training"].get("category_loss_weight", 0.5)),
+        severity_loss_weight=float(config["training"].get("severity_loss_weight", 0.3)),
     )
     return train_gru(
         processed_dir,

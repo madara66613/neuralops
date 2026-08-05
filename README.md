@@ -25,6 +25,10 @@ Development is organized as small reviewable milestone pull requests. M0 establi
 
 These are not conventional all-block HDFS numbers: 575,061 block traces were reduced to 18,383 deterministic `(fingerprint, label)` representatives before splitting. Exact values, confusion matrices, hashes, environment, and reproduction commands are in the machine-readable [baseline](reports/hdfs-v1-deduplicated-baseline.json) and [GRU](reports/hdfs-v1-deduplicated-gru.json) reports.
 
+### Synthetic multi-task demonstration
+
+OpsForge Sim v1 produces 5,615 deduplicated synthetic records from 6,000 generated examples. The locked test artifact reached binary F1 `1.0`, category macro-F1 `1.0`, and severity macro-F1 `0.6856`. The perfect binary/category scores reflect deliberately separable authored patterns, not production capability. See the [methodology](docs/SYNTHETIC_DATA.md) and [exact synthetic report](reports/opsforge-sim-v1-multitask.json).
+
 ## Research contract
 
 - Split by block/session group, never by individual log line.
@@ -50,6 +54,9 @@ neuralops evaluate --artifact artifacts/hdfs-v1-deduplicated/gru \
   --processed-dir data/processed/hdfs-v1 --split test --device cpu
 neuralops benchmark --artifact artifacts/hdfs-v1-deduplicated/gru \
   --processed-dir data/processed/hdfs-v1 --batch-size 32 --device cpu
+neuralops prepare --config configs/opsforge-sim.yaml
+neuralops train --config configs/opsforge-sim.yaml \
+  --artifact artifacts/opsforge-sim-v1/multitask-gru --device cpu
 ```
 
 Neural training, evaluation, prediction, benchmarking, and serving commands land in subsequent milestones and are validated before the first release.
