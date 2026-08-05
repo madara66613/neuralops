@@ -14,6 +14,7 @@ from neuralops.modeling.training import (
     load_gru_artifact,
     train_gru,
 )
+from neuralops.predictor import GRUPredictor
 
 
 def _records() -> list[SequenceRecord]:
@@ -85,6 +86,9 @@ def test_training_restores_loadable_checkpoint_and_benchmarks(tmp_path: Path) ->
     assert result["metadata"]["best_epoch"] >= 1
     loaded = load_gru_artifact(artifact, "cpu")
     assert loaded.metadata["artifact_type"] == "pytorch-packed-bidirectional-gru"
+    prediction = GRUPredictor(artifact, "cpu").predict(["E_START", "E_TIMEOUT", "E_END"])
+    assert prediction.category is None and prediction.severity is None
+    assert prediction.label_provenance == "fixture"
     evaluation = evaluate_artifact(artifact, processed, split="test", requested_device="cpu")
     assert evaluation["samples"] > 0
     benchmark = benchmark_artifact(

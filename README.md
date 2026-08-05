@@ -57,9 +57,13 @@ neuralops benchmark --artifact artifacts/hdfs-v1-deduplicated/gru \
 neuralops prepare --config configs/opsforge-sim.yaml
 neuralops train --config configs/opsforge-sim.yaml \
   --artifact artifacts/opsforge-sim-v1/multitask-gru --device cpu
+neuralops predict --artifact artifacts/opsforge-sim-v1/multitask-gru \
+  --events E001 E012 E104 E207 E104 E431 P07 E087 E099 --device cpu
+neuralops serve --artifact artifacts/opsforge-sim-v1/multitask-gru \
+  --host 127.0.0.1 --port 8000 --device cpu
 ```
 
-Neural training, evaluation, prediction, benchmarking, and serving commands land in subsequent milestones and are validated before the first release.
+See the [HTTP API contract](docs/API.md) for endpoints, payload limits, provenance behavior, and error schemas.
 
 ## License and data
 
