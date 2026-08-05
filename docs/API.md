@@ -12,7 +12,7 @@ neuralops serve \
   --device cpu
 ```
 
-Swagger UI is available at `http://127.0.0.1:8000/docs`. CORS defaults to `http://localhost:4173` and `http://localhost:5173`; override it with a comma-separated `NEURALOPS_CORS_ORIGINS` value.
+Swagger UI is available at `http://127.0.0.1:8000/docs`. CORS defaults to the `localhost` and `127.0.0.1` loopback origins on ports 4173/5173; override it with a comma-separated `NEURALOPS_CORS_ORIGINS` value.
 
 ## Endpoints
 
