@@ -22,9 +22,9 @@ NeuralOps v1.0 is complete only when all criteria below are evidenced by automat
 
 ## Product and quality
 
-- [ ] CLI supports prepare, baseline/train, evaluate, predict, and benchmark. (Predict remains.)
-- [ ] API exposes health, readiness, version, model, single, and batch prediction endpoints.
-- [ ] API enforces payload limits, structured errors, request IDs, and structured logs.
+- [x] CLI supports prepare, baseline/train, evaluate, predict, and benchmark.
+- [x] API exposes health, readiness, version, model, single, and batch prediction endpoints.
+- [x] API enforces payload limits, structured errors, request IDs, and structured logs.
 - [ ] React/TypeScript console works for samples, pasted sequences, batches, and error cases.
 - [ ] Pytest, Ruff, mypy, Vitest, Playwright, and Docker image builds pass in CI.
 - [ ] Docker Compose starts the inference and frontend services from a clean clone plus artifact.

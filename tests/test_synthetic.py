@@ -7,6 +7,7 @@ from neuralops.data.prepare import prepare_dataset
 from neuralops.data.synthetic import INCIDENT_PATTERNS, SEVERITIES, generate_synthetic_records
 from neuralops.modeling.gru import GRUConfig
 from neuralops.modeling.training import TrainingSettings, load_gru_artifact, train_gru
+from neuralops.predictor import GRUPredictor
 
 
 def test_synthetic_generator_keeps_labels_out_of_event_tokens() -> None:
@@ -67,3 +68,8 @@ def test_multitask_training_reports_category_and_severity_separately(tmp_path: P
     assert result["metadata"]["label_provenance"] == "synthetic"
     loaded = load_gru_artifact(artifact, "cpu")
     assert set(loaded.label_mappings) == {"category", "severity"}
+    anomalous = next(record for record in train if record.anomaly)
+    prediction = GRUPredictor(artifact, "cpu").predict(list(anomalous.events))
+    assert prediction.label_provenance == "synthetic"
+    assert prediction.category in categories
+    assert prediction.severity in severities

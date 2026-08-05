@@ -51,6 +51,17 @@ def build_parser() -> argparse.ArgumentParser:
     benchmark.add_argument("--warmup", type=int, default=10)
     benchmark.add_argument("--batch-size", type=int, default=32)
     benchmark.add_argument("--device", default="auto")
+
+    predict = subparsers.add_parser("predict", help="predict one event sequence")
+    predict.add_argument("--artifact", type=Path, required=True)
+    predict.add_argument("--events", nargs="+", required=True)
+    predict.add_argument("--device", default="auto")
+
+    serve = subparsers.add_parser("serve", help="serve a verified artifact with FastAPI")
+    serve.add_argument("--artifact", type=Path, required=True)
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8000)
+    serve.add_argument("--device", default="auto")
     return parser
 
 
@@ -208,6 +219,20 @@ def main() -> None:
             requested_device=args.device,
         )
         print(json.dumps(result, indent=2, sort_keys=True))
+        return
+    if args.command == "predict":
+        from neuralops.predictor import GRUPredictor
+
+        prediction_result = GRUPredictor(args.artifact, args.device).predict(args.events)
+        print(json.dumps(prediction_result.to_dict(), indent=2, sort_keys=True))
+        return
+    if args.command == "serve":
+        import uvicorn
+
+        from neuralops.api.app import create_app
+
+        application = create_app(artifact_dir=args.artifact, requested_device=args.device)
+        uvicorn.run(application, host=args.host, port=args.port)
         return
     parser.print_help()
 
