@@ -13,16 +13,16 @@ NeuralOps v1.0 is complete only when all criteria below are evidenced by automat
 ## Modeling
 
 - [x] TF-IDF + logistic regression baseline is trained and evaluated.
-- [ ] PyTorch GRU uses packed/masked variable-length input and checkpoint restoration.
-- [ ] Seeds, device choice, early stopping, gradient clipping, and training history are recorded.
-- [ ] Threshold and review band are selected exclusively on validation.
-- [ ] Binary precision, recall, F1, PR-AUC, ROC-AUC, FPR, and FNR are reported on test.
+- [x] PyTorch GRU uses packed/masked variable-length input and checkpoint restoration.
+- [x] Seeds, device choice, early stopping, gradient clipping, and training history are recorded.
+- [x] Threshold and review band are selected exclusively on validation.
+- [x] Binary precision, recall, F1, PR-AUC, ROC-AUC, FPR, and FNR are reported on test.
 - [ ] Synthetic category metrics include macro/weighted F1 and a confusion matrix.
-- [ ] Parameter count, artifact size, latency, and throughput include measurement context.
+- [x] Parameter count, artifact size, latency, and throughput include measurement context.
 
 ## Product and quality
 
-- [ ] CLI supports prepare, baseline/train, evaluate, predict, and benchmark.
+- [ ] CLI supports prepare, baseline/train, evaluate, predict, and benchmark. (Predict remains.)
 - [ ] API exposes health, readiness, version, model, single, and batch prediction endpoints.
 - [ ] API enforces payload limits, structured errors, request IDs, and structured logs.
 - [ ] React/TypeScript console works for samples, pasted sequences, batches, and error cases.
