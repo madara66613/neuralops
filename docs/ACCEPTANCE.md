@@ -27,7 +27,7 @@ NeuralOps v1.0 is complete only when all criteria below are evidenced by automat
 - [x] API enforces payload limits, structured errors, request IDs, and structured logs.
 - [x] React/TypeScript console works for samples, pasted sequences, batches, and error cases.
 - [ ] Pytest, Ruff, mypy, Vitest, Playwright, and Docker image builds pass in CI.
-- [ ] Docker Compose starts the inference and frontend services from a clean clone plus artifact.
+- [x] Docker Compose starts the inference and frontend services from a clean clone plus artifact.
 - [x] Model card, error analysis, architecture, screenshots, limitations, and reproducibility commands are current.
 - [ ] Final changes are merged through milestone pull requests and tagged as a GitHub release.
 
