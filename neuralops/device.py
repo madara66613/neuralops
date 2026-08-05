@@ -28,4 +28,3 @@ def resolve_device(requested: str = "auto") -> torch.device:
     if normalized not in {"cuda", "mps", "cpu"}:
         raise ValueError(f"Unsupported device: {requested}")
     return torch.device(normalized)
-

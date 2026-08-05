@@ -11,6 +11,7 @@ requires-python = ">=3.12,<3.14"
 license = { file = "LICENSE" }
 authors = [{ name = "Denis Dacenko" }]
 dependencies = [
+  "certifi>=2025.1",
   "fastapi>=0.115,<1",
   "joblib>=1.4,<2",
   "numpy>=1.26,<3",
@@ -52,10 +53,13 @@ strict = true
 warn_unreachable = true
 exclude = ["tests/fixtures"]
 
+[[tool.mypy.overrides]]
+module = ["joblib", "sklearn.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 addopts = "-q --strict-config --strict-markers"
 testpaths = ["tests"]
 
 [tool.coverage.run]
 source = ["neuralops"]
-

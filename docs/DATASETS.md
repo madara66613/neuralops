@@ -33,7 +33,14 @@ The original HDFS anomaly-detection dataset originates from Wei Xu, Ling Huang, 
 
 Each example is the ordered event-template sequence associated with one HDFS block ID. The target is exactly the upstream block-level normal/anomaly label. HDFS v1 does not provide trustworthy category or severity targets; both outputs are disabled for this track.
 
-The full public benchmark is the scientific target. CI uses a tiny, clearly named generated fixture solely to verify code paths. Fixture metrics are never presented as benchmark results.
+The selected evaluation profile is **HDFS v1 deduplicated sequence**: one
+deterministic representative per `(event-sequence fingerprint, label)` is retained
+before group splitting. Conflicting labels for one fingerprint remain together.
+This avoids inflated evidence from repeated identical features, but it differs from
+the conventional all-block benchmark and is named as such wherever metrics appear.
+
+CI uses a tiny, clearly named generated fixture solely to verify code paths. Fixture
+metrics are never presented as benchmark results.
 
 ## OpsForge Sim v1
 
@@ -50,4 +57,3 @@ All reports, API metadata, and UI screens identify this source as synthetic. Its
 - **BGL:** useful line-level anomaly labels, but less aligned with the requested session-sequence product surface.
 - **Hadoop:** scenario-level labels and fewer lines, but HDFS has a better established block-sequence formulation and baseline ecosystem.
 - **Private OpsForge logs:** rejected as the sole research dataset because private synthetic labels cannot substantiate a public benchmark claim.
-

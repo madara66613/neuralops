@@ -1,0 +1,75 @@
+{
+  "artifact": {
+    "artifact_size_bytes": 9296,
+    "artifact_type": "tfidf-logistic-regression",
+    "model_sha256": "88afd17e036edfec9ef1d741ea20323a18d36c3ef8330347f5b76b87d63b93b8",
+    "parameter_count": 286
+  },
+  "data": {
+    "archive_md5": "76a24b4d9a6164d543fb275f89773260",
+    "archive_record": "https://doi.org/10.5281/zenodo.8196385",
+    "data_manifest_sha256": "e7988f9631881a48a73d34d57a8e3042dac2a8e661ff76c73b0cc8b9d6d3e27f",
+    "deduplication": {
+      "conflicting_label_fingerprints": 10,
+      "input_records": 575061,
+      "output_records": 18383,
+      "removed_records": 556678
+    },
+    "profile": "hdfs-v1-deduplicated-sequence",
+    "seed": 42,
+    "source": "loghub-hdfs-v1",
+    "split_records": {
+      "test": 2740,
+      "train": 12838,
+      "validation": 2805
+    }
+  },
+  "generated_on": "2026-08-05",
+  "metrics": {
+    "test": {
+      "confusion_matrix": {
+        "fn": 14,
+        "fp": 32,
+        "tn": 2049,
+        "tp": 645
+      },
+      "f1": 0.9655688622754491,
+      "false_negative_rate": 0.021244309559939303,
+      "false_positive_rate": 0.015377222489187891,
+      "pr_auc": 0.993398403251326,
+      "precision": 0.9527326440177253,
+      "recall": 0.9787556904400607,
+      "roc_auc": 0.9980636279248842,
+      "samples": 2740,
+      "threshold": 0.7749310344068671
+    },
+    "validation": {
+      "f1": 0.9621882542236525,
+      "pr_auc": 0.9821786795492253,
+      "precision": 0.9492063492063492,
+      "recall": 0.9755301794453507,
+      "roc_auc": 0.9973208225670092,
+      "samples": 2805
+    }
+  },
+  "policy": {
+    "minimum_coverage": 0.8,
+    "review_high": 0.9549310344068671,
+    "review_low": 0.594931034406867,
+    "selected_coverage": 0.9008912655971479,
+    "selected_selective_f1": 0.9910371318822023,
+    "selection_split": "validation",
+    "threshold": 0.7749310344068671
+  },
+  "reproduce": [
+    "neuralops download-hdfs --target data/raw/hdfs-v1",
+    "neuralops prepare --config configs/hdfs-binary.yaml",
+    "neuralops train-baseline --config configs/hdfs-binary.yaml --artifact artifacts/hdfs-v1-deduplicated/baseline"
+  ],
+  "runtime": {
+    "platform": "macOS-27.0-arm64-arm-64bit",
+    "python": "3.12.6",
+    "scikit_learn": "1.9.0"
+  },
+  "schema_version": 1
+}
