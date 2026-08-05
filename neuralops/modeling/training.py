@@ -13,6 +13,7 @@ from typing import Any, cast
 import numpy as np
 import torch
 from torch import Tensor, nn
+from torch.nn import functional as F
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 
@@ -20,7 +21,7 @@ from neuralops import __version__
 from neuralops.data.io import read_json, read_records, sha256_file, write_json
 from neuralops.data.records import SequenceRecord
 from neuralops.device import resolve_device
-from neuralops.metrics import binary_metrics
+from neuralops.metrics import binary_metrics, multiclass_metrics
 from neuralops.modeling.dataset import Batch, SequenceDataset, collate_sequences
 from neuralops.modeling.gru import GRUClassifier, GRUConfig
 from neuralops.policy import select_policy
@@ -38,6 +39,8 @@ class TrainingSettings:
     max_sequence_length: int = 128
     device: str = "auto"
     minimum_coverage: float = 0.80
+    category_loss_weight: float = 0.5
+    severity_loss_weight: float = 0.3
 
 
 @dataclass(slots=True)
@@ -46,8 +49,20 @@ class LoadedGRU:
     vocabulary: dict[str, int]
     policy: dict[str, Any]
     metadata: dict[str, Any]
+    label_mappings: dict[str, list[str]]
     max_sequence_length: int
     device: torch.device
+
+
+@dataclass(slots=True)
+class EpochOutput:
+    loss: float
+    binary_labels: list[int]
+    binary_probabilities: list[float]
+    category_labels: list[int]
+    category_predictions: list[int]
+    severity_labels: list[int]
+    severity_predictions: list[int]
 
 
 def seed_everything(seed: int) -> None:
@@ -65,9 +80,17 @@ def _make_loader(
     settings: TrainingSettings,
     *,
     shuffle: bool,
+    category_to_index: dict[str, int] | None = None,
+    severity_to_index: dict[str, int] | None = None,
 ) -> DataLoader[Batch]:
     generator = torch.Generator().manual_seed(settings.seed)
-    dataset = SequenceDataset(records, vocabulary, settings.max_sequence_length)
+    dataset = SequenceDataset(
+        records,
+        vocabulary,
+        settings.max_sequence_length,
+        category_to_index,
+        severity_to_index,
+    )
     loader = DataLoader(
         dataset,
         batch_size=settings.batch_size,
@@ -87,21 +110,46 @@ def _run_epoch(
     *,
     optimizer: AdamW | None,
     gradient_clip_norm: float,
-) -> tuple[float, list[int], list[float]]:
+    category_loss_weight: float = 0.0,
+    severity_loss_weight: float = 0.0,
+) -> EpochOutput:
     training = optimizer is not None
     model.train(training)
     loss_total = 0.0
     sample_total = 0
     all_labels: list[int] = []
     all_probabilities: list[float] = []
+    category_labels: list[int] = []
+    category_predictions: list[int] = []
+    severity_labels: list[int] = []
+    severity_predictions: list[int] = []
     context = torch.enable_grad() if training else torch.inference_mode()
     with context:
         for batch in batches:
             moved = batch.to(device)
             if optimizer is not None:
                 optimizer.zero_grad(set_to_none=True)
-            logits = model(moved.tokens, moved.lengths)["binary"]
+            outputs = model(moved.tokens, moved.lengths)
+            logits = outputs["binary"]
             loss = criterion(logits, moved.anomaly)
+            category_mask = moved.category >= 0
+            if "category" in outputs and bool(category_mask.any()):
+                category_logits = outputs["category"][category_mask]
+                category_targets = moved.category[category_mask]
+                loss = loss + category_loss_weight * F.cross_entropy(
+                    category_logits, category_targets
+                )
+                category_labels.extend(category_targets.detach().cpu().tolist())
+                category_predictions.extend(category_logits.argmax(dim=1).detach().cpu().tolist())
+            severity_mask = moved.severity >= 0
+            if "severity" in outputs and bool(severity_mask.any()):
+                severity_logits = outputs["severity"][severity_mask]
+                severity_targets = moved.severity[severity_mask]
+                loss = loss + severity_loss_weight * F.cross_entropy(
+                    severity_logits, severity_targets
+                )
+                severity_labels.extend(severity_targets.detach().cpu().tolist())
+                severity_predictions.extend(severity_logits.argmax(dim=1).detach().cpu().tolist())
             if optimizer is not None:
                 loss.backward()
                 nn.utils.clip_grad_norm_(model.parameters(), gradient_clip_norm)
@@ -111,7 +159,15 @@ def _run_epoch(
             sample_total += batch_size
             all_labels.extend(moved.anomaly.detach().cpu().to(torch.int64).tolist())
             all_probabilities.extend(torch.sigmoid(logits).detach().cpu().tolist())
-    return loss_total / max(sample_total, 1), all_labels, all_probabilities
+    return EpochOutput(
+        loss=loss_total / max(sample_total, 1),
+        binary_labels=all_labels,
+        binary_probabilities=all_probabilities,
+        category_labels=category_labels,
+        category_predictions=category_predictions,
+        severity_labels=severity_labels,
+        severity_predictions=severity_predictions,
+    )
 
 
 def _cpu_state(model: nn.Module) -> dict[str, Tensor]:
@@ -125,6 +181,30 @@ def _validated_vocabulary(path: Path) -> dict[str, int]:
     ):
         raise ValueError(f"Invalid vocabulary: {path}")
     return dict(raw)
+
+
+def _evaluation_metrics(
+    output: EpochOutput,
+    threshold: float,
+    label_mappings: dict[str, list[str]],
+) -> dict[str, Any]:
+    binary = binary_metrics(output.binary_labels, output.binary_probabilities, threshold)
+    if not label_mappings:
+        return binary
+    metrics: dict[str, Any] = {"binary": binary}
+    if label_mappings.get("category") and output.category_labels:
+        metrics["category"] = multiclass_metrics(
+            output.category_labels,
+            output.category_predictions,
+            label_mappings["category"],
+        )
+    if label_mappings.get("severity") and output.severity_labels:
+        metrics["severity"] = multiclass_metrics(
+            output.severity_labels,
+            output.severity_predictions,
+            label_mappings["severity"],
+        )
+    return metrics
 
 
 def train_gru(
@@ -142,6 +222,23 @@ def train_gru(
     train_records = read_records(processed_dir / "splits" / "train.jsonl")
     validation_records = read_records(processed_dir / "splits" / "validation.jsonl")
     test_records = read_records(processed_dir / "splits" / "test.jsonl")
+    category_names = sorted(
+        {record.category for record in train_records if record.category is not None}
+    )
+    severity_names = sorted(
+        {record.severity for record in train_records if record.severity is not None}
+    )
+    if model_config.category_classes != len(category_names):
+        raise ValueError("category_classes does not match train-only category labels")
+    if model_config.severity_classes != len(severity_names):
+        raise ValueError("severity_classes does not match train-only severity labels")
+    label_mappings = {
+        key: values
+        for key, values in (("category", category_names), ("severity", severity_names))
+        if values
+    }
+    category_to_index = {name: index for index, name in enumerate(category_names)}
+    severity_to_index = {name: index for index, name in enumerate(severity_names)}
     positives = sum(record.anomaly for record in train_records)
     negatives = len(train_records) - positives
     if not positives or not negatives:
@@ -155,42 +252,78 @@ def train_gru(
         lr=settings.learning_rate,
         weight_decay=settings.weight_decay,
     )
-    train_loader = _make_loader(train_records, vocabulary, settings, shuffle=True)
-    validation_loader = _make_loader(validation_records, vocabulary, settings, shuffle=False)
+    train_loader = _make_loader(
+        train_records,
+        vocabulary,
+        settings,
+        shuffle=True,
+        category_to_index=category_to_index,
+        severity_to_index=severity_to_index,
+    )
+    validation_loader = _make_loader(
+        validation_records,
+        vocabulary,
+        settings,
+        shuffle=False,
+        category_to_index=category_to_index,
+        severity_to_index=severity_to_index,
+    )
 
     best_score = -1.0
     best_epoch = 0
     best_state: dict[str, Tensor] | None = None
     epochs_without_improvement = 0
     history: list[dict[str, Any]] = []
+    monitor_name = "validation_multitask_score" if label_mappings else "validation_pr_auc"
     for epoch in range(1, settings.epochs + 1):
-        train_loss, _, _ = _run_epoch(
+        train_output = _run_epoch(
             model,
             train_loader,
             criterion,
             device,
             optimizer=optimizer,
             gradient_clip_norm=settings.gradient_clip_norm,
+            category_loss_weight=settings.category_loss_weight,
+            severity_loss_weight=settings.severity_loss_weight,
         )
-        validation_loss, labels, probabilities = _run_epoch(
+        validation_output = _run_epoch(
             model,
             validation_loader,
             criterion,
             device,
             optimizer=None,
             gradient_clip_norm=settings.gradient_clip_norm,
+            category_loss_weight=settings.category_loss_weight,
+            severity_loss_weight=settings.severity_loss_weight,
         )
-        validation_metrics = binary_metrics(labels, probabilities, 0.5)
+        validation_metrics = binary_metrics(
+            validation_output.binary_labels,
+            validation_output.binary_probabilities,
+            0.5,
+        )
         score_value = validation_metrics["pr_auc"]
         if score_value is None:
             raise ValueError("Validation PR-AUC requires both classes")
-        score = float(score_value)
+        binary_pr_auc = float(score_value)
+        category_macro_f1: float | None = None
+        severity_macro_f1: float | None = None
+        if label_mappings:
+            task_metrics = _evaluation_metrics(validation_output, 0.5, label_mappings)
+            category_macro_f1 = float(task_metrics["category"]["macro_f1"])
+            severity_macro_f1 = float(task_metrics["severity"]["macro_f1"])
+            score = float(np.mean([binary_pr_auc, category_macro_f1, severity_macro_f1]))
+        else:
+            score = binary_pr_auc
         epoch_result = {
             "epoch": epoch,
-            "train_loss": train_loss,
-            "validation_loss": validation_loss,
-            "validation_pr_auc": score,
+            "train_loss": train_output.loss,
+            "validation_loss": validation_output.loss,
+            "validation_pr_auc": binary_pr_auc,
             "validation_f1_at_0_5": validation_metrics["f1"],
+            "validation_category_macro_f1": category_macro_f1,
+            "validation_severity_macro_f1": severity_macro_f1,
+            "monitor": monitor_name,
+            "monitor_score": score,
         }
         history.append(epoch_result)
         print(json.dumps({"training": epoch_result}, sort_keys=True), flush=True)
@@ -209,33 +342,51 @@ def train_gru(
     model.load_state_dict(best_state)
     model.to(device)
 
-    validation_loader = _make_loader(validation_records, vocabulary, settings, shuffle=False)
-    _, validation_labels, validation_probabilities = _run_epoch(
+    validation_loader = _make_loader(
+        validation_records,
+        vocabulary,
+        settings,
+        shuffle=False,
+        category_to_index=category_to_index,
+        severity_to_index=severity_to_index,
+    )
+    validation_output = _run_epoch(
         model,
         validation_loader,
         criterion,
         device,
         optimizer=None,
         gradient_clip_norm=settings.gradient_clip_norm,
+        category_loss_weight=settings.category_loss_weight,
+        severity_loss_weight=settings.severity_loss_weight,
     )
     policy = select_policy(
-        validation_labels,
-        validation_probabilities,
+        validation_output.binary_labels,
+        validation_output.binary_probabilities,
         minimum_coverage=settings.minimum_coverage,
     )
     threshold = float(policy["threshold"])
-    test_loader = _make_loader(test_records, vocabulary, settings, shuffle=False)
-    _, test_labels, test_probabilities = _run_epoch(
+    test_loader = _make_loader(
+        test_records,
+        vocabulary,
+        settings,
+        shuffle=False,
+        category_to_index=category_to_index,
+        severity_to_index=severity_to_index,
+    )
+    test_output = _run_epoch(
         model,
         test_loader,
         criterion,
         device,
         optimizer=None,
         gradient_clip_norm=settings.gradient_clip_norm,
+        category_loss_weight=settings.category_loss_weight,
+        severity_loss_weight=settings.severity_loss_weight,
     )
     metrics = {
-        "validation": binary_metrics(validation_labels, validation_probabilities, threshold),
-        "test": binary_metrics(test_labels, test_probabilities, threshold),
+        "validation": _evaluation_metrics(validation_output, threshold, label_mappings),
+        "test": _evaluation_metrics(test_output, threshold, label_mappings),
     }
 
     artifact_dir.mkdir(parents=True, exist_ok=True)
@@ -243,22 +394,29 @@ def train_gru(
     torch.save(best_state, model_path)
     write_json(artifact_dir / "model_config.json", model_config.to_dict())
     write_json(artifact_dir / "vocabulary.json", vocabulary)
+    write_json(artifact_dir / "label_mappings.json", label_mappings)
     write_json(artifact_dir / "policy.json", policy)
     write_json(artifact_dir / "metrics.json", metrics)
     write_json(
         artifact_dir / "training_history.json",
-        {"best_epoch": best_epoch, "monitor": "validation_pr_auc", "epochs": history},
+        {"best_epoch": best_epoch, "monitor": monitor_name, "epochs": history},
     )
     data_manifest = read_json(processed_dir / "manifest.json")
+    artifact_source = str(data_manifest.get("source", train_records[0].source))
+    label_provenance = (
+        "public"
+        if artifact_source == "loghub-hdfs-v1"
+        else "synthetic"
+        if artifact_source == "opsforge-sim-v1"
+        else "fixture"
+    )
     metadata = {
         "schema_version": 1,
         "artifact_type": "pytorch-packed-bidirectional-gru",
         "neuralops_version": __version__,
-        "source": str(data_manifest.get("source", train_records[0].source)),
+        "source": artifact_source,
         "profile": str(data_manifest.get("profile", train_records[0].source)),
-        "label_provenance": "public"
-        if train_records[0].source == "loghub-hdfs-v1"
-        else "fixture-or-synthetic",
+        "label_provenance": label_provenance,
         "seed": settings.seed,
         "device": str(device),
         "parameter_count": sum(parameter.numel() for parameter in model.parameters()),
@@ -267,8 +425,10 @@ def train_gru(
         "model_config_sha256": sha256_file(artifact_dir / "model_config.json"),
         "vocabulary_sha256": sha256_file(artifact_dir / "vocabulary.json"),
         "policy_sha256": sha256_file(artifact_dir / "policy.json"),
+        "label_mappings_sha256": sha256_file(artifact_dir / "label_mappings.json"),
         "data_manifest_sha256": sha256_file(processed_dir / "manifest.json"),
         "best_epoch": best_epoch,
+        "monitor": monitor_name,
         "max_sequence_length": settings.max_sequence_length,
         "truncated_records": {
             split_name: sum(len(record.events) > settings.max_sequence_length for record in records)
@@ -301,12 +461,23 @@ def load_gru_artifact(artifact_dir: Path, requested_device: str = "auto") -> Loa
         "model_config_sha256": "model_config.json",
         "vocabulary_sha256": "vocabulary.json",
         "policy_sha256": "policy.json",
+        "label_mappings_sha256": "label_mappings.json",
     }
     for metadata_key, filename in integrity_files.items():
         expected = metadata_raw.get(metadata_key)
         if expected is not None and sha256_file(artifact_dir / filename) != expected:
             raise ValueError(f"Artifact integrity check failed for {filename}")
     vocabulary = _validated_vocabulary(artifact_dir / "vocabulary.json")
+    mappings_path = artifact_dir / "label_mappings.json"
+    mappings_raw = read_json(mappings_path) if mappings_path.exists() else {}
+    if not isinstance(mappings_raw, dict) or not all(
+        isinstance(key, str)
+        and isinstance(value, list)
+        and all(isinstance(item, str) for item in value)
+        for key, value in mappings_raw.items()
+    ):
+        raise ValueError("Artifact label mappings must contain string lists")
+    label_mappings = {str(key): list(value) for key, value in mappings_raw.items()}
     model = GRUClassifier(GRUConfig.from_dict(model_raw))
     state = torch.load(artifact_dir / "model.pt", map_location="cpu", weights_only=True)
     model.load_state_dict(state)
@@ -316,6 +487,7 @@ def load_gru_artifact(artifact_dir: Path, requested_device: str = "auto") -> Loa
         vocabulary=vocabulary,
         policy=dict(policy_raw),
         metadata=dict(metadata_raw),
+        label_mappings=label_mappings,
         max_sequence_length=int(metadata_raw["max_sequence_length"]),
         device=device,
     )
@@ -329,7 +501,7 @@ def predict_probabilities(loaded: LoadedGRU, records: list[SequenceRecord]) -> l
     )
     loader = _make_loader(records, loaded.vocabulary, settings, shuffle=False)
     criterion = nn.BCEWithLogitsLoss()
-    _, _, probabilities = _run_epoch(
+    output = _run_epoch(
         loaded.model,
         loader,
         criterion,
@@ -337,7 +509,7 @@ def predict_probabilities(loaded: LoadedGRU, records: list[SequenceRecord]) -> l
         optimizer=None,
         gradient_clip_norm=1.0,
     )
-    return probabilities
+    return output.binary_probabilities
 
 
 def evaluate_artifact(
@@ -351,9 +523,35 @@ def evaluate_artifact(
         raise ValueError("Evaluation split must be validation or test")
     loaded = load_gru_artifact(artifact_dir, requested_device)
     records = read_records(processed_dir / "splits" / f"{split}.jsonl")
-    probabilities = predict_probabilities(loaded, records)
-    return binary_metrics(
-        [record.anomaly for record in records],
-        probabilities,
+    settings = TrainingSettings(
+        batch_size=256,
+        max_sequence_length=loaded.max_sequence_length,
+        device=str(loaded.device),
+    )
+    category_to_index = {
+        name: index for index, name in enumerate(loaded.label_mappings.get("category", []))
+    }
+    severity_to_index = {
+        name: index for index, name in enumerate(loaded.label_mappings.get("severity", []))
+    }
+    loader = _make_loader(
+        records,
+        loaded.vocabulary,
+        settings,
+        shuffle=False,
+        category_to_index=category_to_index,
+        severity_to_index=severity_to_index,
+    )
+    output = _run_epoch(
+        loaded.model,
+        loader,
+        nn.BCEWithLogitsLoss(),
+        loaded.device,
+        optimizer=None,
+        gradient_clip_norm=1.0,
+    )
+    return _evaluation_metrics(
+        output,
         float(loaded.policy["threshold"]),
+        loaded.label_mappings,
     )

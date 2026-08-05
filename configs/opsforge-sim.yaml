@@ -31,6 +31,8 @@ training:
   learning_rate: 0.001
   weight_decay: 0.0001
   gradient_clip_norm: 1.0
+  category_loss_weight: 0.5
+  severity_loss_weight: 0.3
   device: auto
 evaluation:
   threshold_objective: f1
