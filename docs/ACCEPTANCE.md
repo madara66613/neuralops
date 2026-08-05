@@ -22,18 +22,19 @@ NeuralOps v1.0 is complete only when all criteria below are evidenced by automat
 
 ## Product and quality
 
-- [x] CLI supports prepare, baseline/train, evaluate, predict, and benchmark.
-- [x] API exposes health, readiness, version, model, single, and batch prediction endpoints.
+- [x] CLI supports prepare, baseline/train, evaluate, error analysis, predict, and benchmark.
+- [x] API exposes health, readiness, version, model, single, sensitivity, and batch prediction endpoints.
 - [x] API enforces payload limits, structured errors, request IDs, and structured logs.
 - [x] React/TypeScript console works for samples, pasted sequences, batches, and error cases.
 - [ ] Pytest, Ruff, mypy, Vitest, Playwright, and Docker image builds pass in CI.
 - [ ] Docker Compose starts the inference and frontend services from a clean clone plus artifact.
-- [ ] Model card, error analysis, architecture, screenshots, limitations, and reproducibility commands are current.
+- [x] Model card, error analysis, architecture, screenshots, limitations, and reproducibility commands are current.
 - [ ] Final changes are merged through milestone pull requests and tagged as a GitHub release.
 
 ## Claim policy
 
-- No rounded or placeholder metric appears in README, UI, release notes, or model card.
+- No placeholder or unsupported metric appears in README, UI, release notes, or model card.
+- Rounded UI presentation is display-only; exact API values and evaluation reports remain available.
 - Every numerical performance claim can be regenerated from a committed command and machine-readable report.
 - Synthetic results are labeled synthetic at the point of display.
 - The repository does not claim production deployment, real-world superiority, or incident prevention without evidence.

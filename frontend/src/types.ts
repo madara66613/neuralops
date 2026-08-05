@@ -35,6 +35,25 @@ export type ModelInfo = {
   device: string;
 };
 
+export type SensitivityEvidence = {
+  event_index: number;
+  event: string;
+  anomaly_probability_without_event: number;
+  anomaly_probability_delta: number;
+  absolute_delta: number;
+  effect: "supports_anomaly" | "suppresses_anomaly" | "neutral";
+};
+
+export type SensitivityResult = {
+  prediction: Prediction;
+  method: string;
+  interpretation: string;
+  input_event_count: number;
+  evaluated_event_count: number;
+  evaluation_limited: boolean;
+  evidence: SensitivityEvidence[];
+};
+
 export type ApiErrorBody = {
   request_id?: string;
   error?: {

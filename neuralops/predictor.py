@@ -147,6 +147,57 @@ class GRUPredictor:
             )
         return predictions
 
+    def leave_one_out_sensitivity(
+        self,
+        events: list[str],
+        *,
+        max_evaluated_events: int = 64,
+        top_k: int = 8,
+    ) -> dict[str, Any]:
+        """Measure score change after removing each event; this is not causal attribution."""
+        if max_evaluated_events < 1 or top_k < 1:
+            raise ValueError("Sensitivity limits must be positive")
+        baseline = self.predict(events)
+        evaluated_count = min(len(events), max_evaluated_events)
+        if len(events) == 1:
+            ablated_predictions: list[Prediction] = []
+        else:
+            ablated_sequences = [
+                events[:index] + events[index + 1 :] for index in range(evaluated_count)
+            ]
+            ablated_predictions = self.predict_batch(ablated_sequences)
+        evidence: list[dict[str, Any]] = []
+        for index, ablated in enumerate(ablated_predictions):
+            delta = baseline.anomaly_probability - ablated.anomaly_probability
+            evidence.append(
+                {
+                    "event_index": index,
+                    "event": events[index],
+                    "anomaly_probability_without_event": ablated.anomaly_probability,
+                    "anomaly_probability_delta": delta,
+                    "absolute_delta": abs(delta),
+                    "effect": (
+                        "supports_anomaly"
+                        if delta > 0
+                        else "suppresses_anomaly"
+                        if delta < 0
+                        else "neutral"
+                    ),
+                }
+            )
+        evidence.sort(key=lambda item: (-float(item["absolute_delta"]), int(item["event_index"])))
+        return {
+            "prediction": baseline.to_dict(),
+            "method": "leave_one_event_out_probability_sensitivity",
+            "interpretation": (
+                "Descriptive model sensitivity; not a causal or root-cause explanation."
+            ),
+            "input_event_count": len(events),
+            "evaluated_event_count": evaluated_count,
+            "evaluation_limited": len(events) > evaluated_count,
+            "evidence": evidence[:top_k],
+        }
+
     @staticmethod
     def _auxiliary_prediction(
         probabilities: torch.Tensor | None,

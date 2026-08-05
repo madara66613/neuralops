@@ -59,13 +59,39 @@ class PredictionPayload(StrictModel):
 
 class PredictionResponse(StrictModel):
     request_id: str
+    model_version: str
+    inference_ms: float
     prediction: PredictionPayload
 
 
 class BatchPredictionResponse(StrictModel):
     request_id: str
+    model_version: str
+    inference_ms: float
     count: int
     predictions: list[PredictionPayload]
+
+
+class SensitivityEvidence(StrictModel):
+    event_index: int
+    event: str
+    anomaly_probability_without_event: float
+    anomaly_probability_delta: float
+    absolute_delta: float
+    effect: str
+
+
+class SensitivityResponse(StrictModel):
+    request_id: str
+    model_version: str
+    inference_ms: float
+    prediction: PredictionPayload
+    method: str
+    interpretation: str
+    input_event_count: int
+    evaluated_event_count: int
+    evaluation_limited: bool
+    evidence: list[SensitivityEvidence]
 
 
 class StatusResponse(StrictModel):

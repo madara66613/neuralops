@@ -1,0 +1,18 @@
+{
+  "category": [
+    "authentication_failure",
+    "cache_degradation",
+    "database_contention",
+    "deployment_regression",
+    "inventory_sync_failure",
+    "message_queue_backlog",
+    "payment_gateway_failure",
+    "resource_exhaustion",
+    "service_dependency_timeout"
+  ],
+  "severity": [
+    "high",
+    "low",
+    "medium"
+  ]
+}

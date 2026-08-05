@@ -25,6 +25,7 @@ from neuralops.api.schemas import (
     ErrorResponse,
     ModelResponse,
     PredictionResponse,
+    SensitivityResponse,
     SequenceInput,
     StatusResponse,
     VersionResponse,
@@ -42,6 +43,8 @@ class Predictor(Protocol):
     def predict(self, events: list[str]) -> Prediction: ...
 
     def predict_batch(self, sequences: list[list[str]]) -> list[Prediction]: ...
+
+    def leave_one_out_sensitivity(self, events: list[str]) -> dict[str, Any]: ...
 
 
 def _request_id(request: Request) -> str:
@@ -208,8 +211,31 @@ def create_app(
         responses={422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
     )
     def predict(request: Request, payload: SequenceInput) -> dict[str, Any]:
+        started = time.perf_counter_ns()
         result = require_predictor().predict(payload.events)
-        return {"request_id": request.state.request_id, "prediction": result.to_dict()}
+        inference_ms = (time.perf_counter_ns() - started) / 1_000_000
+        return {
+            "request_id": request.state.request_id,
+            "model_version": __version__,
+            "inference_ms": inference_ms,
+            "prediction": result.to_dict(),
+        }
+
+    @application.post(
+        "/predict/sensitivity",
+        response_model=SensitivityResponse,
+        responses={422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
+    )
+    def predict_sensitivity(request: Request, payload: SequenceInput) -> dict[str, Any]:
+        started = time.perf_counter_ns()
+        result = require_predictor().leave_one_out_sensitivity(payload.events)
+        inference_ms = (time.perf_counter_ns() - started) / 1_000_000
+        return {
+            "request_id": request.state.request_id,
+            "model_version": __version__,
+            "inference_ms": inference_ms,
+            **result,
+        }
 
     @application.post(
         "/predict/batch",
@@ -217,11 +243,15 @@ def create_app(
         responses={422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
     )
     def predict_batch(request: Request, payload: BatchInput) -> dict[str, Any]:
+        started = time.perf_counter_ns()
         results = require_predictor().predict_batch(
             [sequence.events for sequence in payload.sequences]
         )
+        inference_ms = (time.perf_counter_ns() - started) / 1_000_000
         return {
             "request_id": request.state.request_id,
+            "model_version": __version__,
+            "inference_ms": inference_ms,
             "count": len(results),
             "predictions": [result.to_dict() for result in results],
         }

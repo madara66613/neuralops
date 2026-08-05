@@ -46,6 +46,29 @@ class FakePredictor:
     def predict_batch(self, sequences: list[list[str]]) -> list[Prediction]:
         return [self.predict(events) for events in sequences]
 
+    def leave_one_out_sensitivity(self, events: list[str]) -> dict[str, Any]:
+        prediction = self.predict(events)
+        return {
+            "prediction": prediction.to_dict(),
+            "method": "leave_one_event_out_probability_sensitivity",
+            "interpretation": (
+                "Descriptive model sensitivity; not a causal or root-cause explanation."
+            ),
+            "input_event_count": len(events),
+            "evaluated_event_count": len(events),
+            "evaluation_limited": False,
+            "evidence": [
+                {
+                    "event_index": 1,
+                    "event": events[1],
+                    "anomaly_probability_without_event": 0.1,
+                    "anomaly_probability_delta": 0.8,
+                    "absolute_delta": 0.8,
+                    "effect": "supports_anomaly",
+                }
+            ],
+        }
+
 
 def test_health_request_id_readiness_and_model_metadata() -> None:
     client = TestClient(create_app(predictor=FakePredictor()))
@@ -74,6 +97,8 @@ def test_single_and_batch_prediction_contracts() -> None:
     client = TestClient(create_app(predictor=FakePredictor()))
     single = client.post("/predict", json={"events": ["E_START", "E_BAD"]})
     assert single.status_code == 200
+    assert single.json()["model_version"] == "1.0.0"
+    assert single.json()["inference_ms"] >= 0
     assert single.json()["prediction"]["predicted_anomaly"] is True
     assert single.json()["prediction"]["confidence_kind"].endswith("not_calibrated")
 
@@ -84,6 +109,11 @@ def test_single_and_batch_prediction_contracts() -> None:
     assert batch.status_code == 200
     assert batch.json()["count"] == 2
     assert [item["decision"] for item in batch.json()["predictions"]] == ["normal", "anomaly"]
+
+    sensitivity = client.post("/predict/sensitivity", json={"events": ["E_START", "E_BAD"]})
+    assert sensitivity.status_code == 200
+    assert sensitivity.json()["method"] == "leave_one_event_out_probability_sensitivity"
+    assert sensitivity.json()["evidence"][0]["event"] == "E_BAD"
 
 
 def test_validation_and_payload_limits_return_safe_errors() -> None:

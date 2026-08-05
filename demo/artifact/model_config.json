@@ -1,0 +1,10 @@
+{
+  "bidirectional": true,
+  "category_classes": 9,
+  "dropout": 0.2,
+  "embedding_dim": 64,
+  "hidden_dim": 128,
+  "layers": 1,
+  "severity_classes": 3,
+  "vocabulary_size": 82
+}

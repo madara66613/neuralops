@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { ApiError, fetchSystem, predict, predictBatch } from "./api";
-import type { ModelInfo, Prediction } from "./types";
+import { ApiError, fetchSystem, predictBatch, predictWithSensitivity } from "./api";
+import type { ModelInfo, Prediction, SensitivityEvidence } from "./types";
 
 type Mode = "single" | "batch";
 
@@ -128,7 +128,48 @@ function ResultDetails({ prediction }: { prediction: Prediction }) {
   );
 }
 
-function ResultPanel({ results, loading }: { results: Prediction[]; loading: boolean }) {
+function SensitivityPanel({ evidence }: { evidence: SensitivityEvidence[] }) {
+  if (evidence.length === 0) return null;
+  const maximum = Math.max(...evidence.map((item) => item.absolute_delta), Number.EPSILON);
+  return (
+    <section className="sensitivity-panel" aria-label="Leave-one-event-out sensitivity">
+      <div className="sensitivity-heading">
+        <div>
+          <span>Event sensitivity</span>
+          <strong>Leave-one-out score change</strong>
+        </div>
+        <small>Descriptive, not causal</small>
+      </div>
+      <div className="sensitivity-list">
+        {evidence.slice(0, 5).map((item) => (
+          <div className="sensitivity-row" key={`${item.event_index}-${item.event}`}>
+            <code>#{item.event_index + 1} {item.event}</code>
+            <div className="sensitivity-track" aria-hidden="true">
+              <i
+                className={item.effect}
+                style={{ width: `${Math.max(4, (item.absolute_delta / maximum) * 100)}%` }}
+              />
+            </div>
+            <span className={item.effect}>
+              {item.anomaly_probability_delta >= 0 ? "+" : ""}
+              {(item.anomaly_probability_delta * 100).toFixed(2)} pp
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ResultPanel({
+  results,
+  loading,
+  evidence,
+}: {
+  results: Prediction[];
+  loading: boolean;
+  evidence: SensitivityEvidence[];
+}) {
   if (loading) {
     return (
       <div className="panel-state" aria-live="polite">
@@ -163,7 +204,10 @@ function ResultPanel({ results, loading }: { results: Prediction[]; loading: boo
         </div>
         <div className="batch-list">
           {results.map((prediction, index) => (
-            <article className="batch-row" key={`${prediction.anomaly_probability}-${index}`}>
+            <article
+              className="batch-row"
+              key={`${prediction.profile}-${prediction.anomaly_probability}-${index}`}
+            >
               <span className="sequence-index">{String(index + 1).padStart(2, "0")}</span>
               <div>
                 <DecisionBadge prediction={prediction} />
@@ -209,6 +253,7 @@ function ResultPanel({ results, loading }: { results: Prediction[]; loading: boo
         <span><b>{prediction.truncated ? "Yes" : "No"}</b> truncated</span>
         <span><b>{formatLabel(prediction.label_provenance)}</b> labels</span>
       </div>
+      <SensitivityPanel evidence={evidence} />
     </div>
   );
 }
@@ -216,7 +261,7 @@ function ResultPanel({ results, loading }: { results: Prediction[]; loading: boo
 function Provenance({ model }: { model: ModelInfo | null }) {
   if (!model) {
     return (
-      <div className="provenance skeleton-lines" aria-label="Model metadata unavailable">
+      <div className="provenance skeleton-lines" role="status" aria-label="Model metadata unavailable">
         <span /> <span /> <span />
       </div>
     );
@@ -245,6 +290,7 @@ export default function App() {
   const [mode, setMode] = useState<Mode>("single");
   const [input, setInput] = useState<string>(samples[0].value);
   const [results, setResults] = useState<Prediction[]>([]);
+  const [evidence, setEvidence] = useState<SensitivityEvidence[]>([]);
   const [model, setModel] = useState<ModelInfo | null>(null);
   const [status, setStatus] = useState<"checking" | "online" | "offline">("checking");
   const [loading, setLoading] = useState(false);
@@ -274,6 +320,7 @@ export default function App() {
   function changeMode(nextMode: Mode) {
     setMode(nextMode);
     setResults([]);
+    setEvidence([]);
     setError(null);
     setInput(
       nextMode === "single"
@@ -286,10 +333,15 @@ export default function App() {
     if (parsed.length === 0 || loading) return;
     setLoading(true);
     setError(null);
+    setEvidence([]);
     try {
-      const predictions =
-        mode === "single" ? [await predict(parsed[0])] : await predictBatch(parsed);
-      setResults(predictions);
+      if (mode === "single") {
+        const result = await predictWithSensitivity(parsed[0]);
+        setResults([result.prediction]);
+        setEvidence(result.evidence);
+      } else {
+        setResults(await predictBatch(parsed));
+      }
     } catch (caught) {
       const apiError = caught instanceof ApiError ? caught : null;
       setResults([]);
@@ -339,27 +391,30 @@ export default function App() {
                 <h2>Event sequence</h2>
               </div>
               <div className="mode-switch" role="tablist" aria-label="Prediction mode">
-                <button role="tab" aria-selected={mode === "single"} onClick={() => changeMode("single")}>Single</button>
-                <button role="tab" aria-selected={mode === "batch"} onClick={() => changeMode("batch")}>Batch</button>
+                <button type="button" role="tab" aria-selected={mode === "single"} onClick={() => changeMode("single")}>Single</button>
+                <button type="button" role="tab" aria-selected={mode === "batch"} onClick={() => changeMode("batch")}>Batch</button>
               </div>
             </div>
 
             {mode === "single" && (
-              <div className="samples" aria-label="Example sequences">
+              <fieldset className="samples">
+                <legend className="sr-only">Example sequences</legend>
                 {samples.map((sample) => (
                   <button
+                    type="button"
                     className={`sample-chip ${sample.tone}`}
                     key={sample.label}
                     onClick={() => {
                       setInput(sample.value);
                       setResults([]);
+                      setEvidence([]);
                       setError(null);
                     }}
                   >
                     <i /> {sample.label}
                   </button>
                 ))}
-              </div>
+              </fieldset>
             )}
 
             <label className="editor-label" htmlFor="sequence-input">
@@ -368,7 +423,10 @@ export default function App() {
             </label>
             <div className="editor-wrap">
               <div className="line-numbers" aria-hidden="true">
-                {Array.from({ length: Math.max(5, input.split("\n").length) }, (_, index) => <span key={index}>{index + 1}</span>)}
+                {Array.from(
+                  { length: Math.max(5, input.split("\n").length) },
+                  (_, index) => index + 1,
+                ).map((lineNumber) => <span key={`line-${lineNumber}`}>{lineNumber}</span>)}
               </div>
               <textarea
                 id="sequence-input"
@@ -376,6 +434,7 @@ export default function App() {
                 onChange={(event) => {
                   setInput(event.target.value);
                   setResults([]);
+                  setEvidence([]);
                   setError(null);
                 }}
                 spellCheck={false}
@@ -394,13 +453,13 @@ export default function App() {
               </div>
             )}
 
-            <button className="analyze-button" disabled={parsed.length === 0 || loading} onClick={analyze}>
+            <button type="button" className="analyze-button" disabled={parsed.length === 0 || loading} onClick={analyze}>
               {loading ? <><i className="button-spinner" /> Analyzing…</> : <><Mark kind="pulse" /> Analyze sequence</>}
             </button>
           </article>
 
           <article className="result-panel surface">
-            <ResultPanel results={results} loading={loading} />
+            <ResultPanel results={results} loading={loading} evidence={evidence} />
           </article>
         </section>
 
