@@ -14,7 +14,22 @@ The repository deliberately separates two evidence tracks:
 
 ## Current status
 
-Development is organized as small reviewable milestone pull requests. M0 established the research contract and CI foundation; M1 adds verified HDFS preparation and the statistical baseline. Numerical claims come only from generated, versioned evaluation artifacts.
+Development is organized as small reviewable milestone pull requests. The data, baseline, GRU, synthetic multi-task profile, shared predictor, inference API, and operator console are implemented. Numerical claims come only from generated, versioned evaluation artifacts.
+
+## Operator console
+
+The React/TypeScript console handles individual and batch sequences, example inputs, loading/offline/error states, raw confidence disclosure, unknown-token diagnostics, and artifact provenance. It is responsive and keyboard operable.
+
+![NeuralOps anomaly decision console](output/playwright/neuralops-desktop.png)
+
+<details>
+<summary>Batch and mobile views</summary>
+
+![NeuralOps batch scoring console](output/playwright/neuralops-batch.png)
+
+![NeuralOps mobile console](output/playwright/neuralops-mobile.png)
+
+</details>
 
 ### Verified baseline
 
@@ -63,7 +78,15 @@ neuralops serve --artifact artifacts/opsforge-sim-v1/multitask-gru \
   --host 127.0.0.1 --port 8000 --device cpu
 ```
 
-See the [HTTP API contract](docs/API.md) for endpoints, payload limits, provenance behavior, and error schemas.
+Start the console in a second terminal:
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+See the [HTTP API contract](docs/API.md) for endpoints, payload limits, provenance behavior, and error schemas. The [console guide](docs/UI.md) documents UI states, accessibility, testing, and configuration.
 
 ## License and data
 
