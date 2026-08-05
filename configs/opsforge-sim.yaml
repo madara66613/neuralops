@@ -3,12 +3,14 @@ run_name: opsforge-sim-v1-multitask-gru
 seed: 42
 task:
   source: opsforge-sim-v1
+  profile: opsforge-sim-v1-multitask
   type: multitask
   category_head: true
   severity_head: true
 data:
   processed_dir: data/processed/opsforge-sim-v1
   synthetic_samples: 6000
+  deduplicate: true
   split:
     train: 0.70
     validation: 0.15
@@ -31,4 +33,3 @@ training:
 evaluation:
   threshold_objective: f1
   minimum_selective_coverage: 0.80
-

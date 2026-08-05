@@ -4,15 +4,15 @@ NeuralOps v1.0 is complete only when all criteria below are evidenced by automat
 
 ## Data and research
 
-- [ ] Official HDFS v1 download is checksum-verified and attribution is preserved.
-- [ ] Preparation emits schema, class balance, length distribution, unknown-token rate, and manifest hashes.
-- [ ] Automated checks prove group and duplicate fingerprints are split-disjoint.
-- [ ] Vocabulary and transforms are fitted from train only.
-- [ ] CI fixture and public benchmark profiles are unmistakably separated.
+- [x] Official HDFS v1 download is checksum-verified and attribution is preserved.
+- [x] Preparation emits schema, class balance, length distribution, unknown-token rate, and manifest hashes.
+- [x] Automated checks prove group and duplicate fingerprints are split-disjoint.
+- [x] Vocabulary and transforms are fitted from train only.
+- [x] CI fixture and public benchmark profiles are unmistakably separated.
 
 ## Modeling
 
-- [ ] TF-IDF + logistic regression baseline is trained and evaluated.
+- [x] TF-IDF + logistic regression baseline is trained and evaluated.
 - [ ] PyTorch GRU uses packed/masked variable-length input and checkpoint restoration.
 - [ ] Seeds, device choice, early stopping, gradient clipping, and training history are recorded.
 - [ ] Threshold and review band are selected exclusively on validation.
@@ -37,4 +37,3 @@ NeuralOps v1.0 is complete only when all criteria below are evidenced by automat
 - Every numerical performance claim can be regenerated from a committed command and machine-readable report.
 - Synthetic results are labeled synthetic at the point of display.
 - The repository does not claim production deployment, real-world superiority, or incident prevention without evidence.
-

@@ -3,12 +3,14 @@ run_name: hdfs-v1-binary-gru
 seed: 42
 task:
   source: loghub-hdfs-v1
+  profile: hdfs-v1-deduplicated-sequence
   type: binary
   category_head: false
   severity_head: false
 data:
   raw_dir: data/raw/hdfs-v1
   processed_dir: data/processed/hdfs-v1
+  deduplicate: true
   split:
     train: 0.70
     validation: 0.15
@@ -31,4 +33,3 @@ training:
 evaluation:
   threshold_objective: f1
   minimum_selective_coverage: 0.80
-

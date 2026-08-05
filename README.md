@@ -14,7 +14,15 @@ The repository deliberately separates two evidence tracks:
 
 ## Current status
 
-Development is organized as small reviewable milestone pull requests. M0 establishes the research contract, architecture, reproducibility rules, and CI foundation. Numerical claims are added only from generated, versioned evaluation artifacts.
+Development is organized as small reviewable milestone pull requests. M0 established the research contract and CI foundation; M1 adds verified HDFS preparation and the statistical baseline. Numerical claims come only from generated, versioned evaluation artifacts.
+
+### Verified baseline
+
+| Profile | Model | Test samples | Precision | Recall | F1 | PR-AUC | ROC-AUC |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| HDFS v1 deduplicated sequence | TF-IDF + logistic regression | 2,740 | 0.9527 | 0.9788 | 0.9656 | 0.9934 | 0.9981 |
+
+These are not conventional all-block HDFS numbers: 575,061 block traces were reduced to 18,383 deterministic `(fingerprint, label)` representatives before splitting. Exact values, confusion matrix, hashes, environment, and reproduction commands are in [the machine-readable baseline report](reports/hdfs-v1-deduplicated-baseline.json).
 
 ## Research contract
 
@@ -27,22 +35,18 @@ Development is organized as small reviewable milestone pull requests. M0 establi
 
 See [dataset evidence](docs/DATASETS.md), [architecture](docs/ARCHITECTURE.md), and [acceptance criteria](docs/ACCEPTANCE.md).
 
-## Planned command surface
+## Command surface
 
 ```bash
 neuralops download-hdfs
 neuralops prepare --config configs/hdfs-binary.yaml
 neuralops train-baseline --config configs/hdfs-binary.yaml
-neuralops train --config configs/hdfs-binary.yaml
-neuralops evaluate --artifact artifacts/hdfs-gru
-neuralops predict --artifact artifacts/hdfs-gru --events E5 E22 E5
-neuralops benchmark --artifact artifacts/hdfs-gru
-neuralops serve --artifact artifacts/hdfs-gru
+neuralops train-baseline --config configs/hdfs-binary.yaml \
+  --artifact artifacts/hdfs-v1-deduplicated/baseline
 ```
 
-The commands are implemented incrementally and validated in CI before the first release.
+Neural training, evaluation, prediction, benchmarking, and serving commands land in subsequent milestones and are validated before the first release.
 
 ## License and data
 
 NeuralOps source code is MIT licensed. Loghub data is a separate CC BY 4.0 dataset and is not bundled here. The official record, required attribution, checksum, and citations are documented in [docs/DATASETS.md](docs/DATASETS.md).
-

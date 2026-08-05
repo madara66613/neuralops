@@ -19,4 +19,3 @@ def test_unknown_device_is_rejected() -> None:
 @patch("torch.backends.mps.is_available", return_value=False)
 def test_auto_falls_back_to_cpu(_mps: object, _cuda: object) -> None:
     assert resolve_device("auto") == torch.device("cpu")
-

@@ -35,12 +35,18 @@ flowchart LR
 ## Leakage controls
 
 1. Normalize and fingerprint complete sequences before splitting.
-2. Union identical fingerprints into one duplicate cluster.
+2. Deduplicate identical `(fingerprint, label)` records, retaining a deterministic representative.
 3. Assign clusters deterministically using a seeded stable hash of the cluster ID.
 4. Assert block/session groups and fingerprints are disjoint across all splits.
 5. Fit vocabulary, TF-IDF, class weights, and sequence-length limits on train only.
 6. Select early stopping, decision threshold, and uncertainty band using validation only.
 7. Evaluate the locked artifact once against test; record the manifest hash.
+
+If identical normalized sequences carry conflicting upstream labels, NeuralOps keeps
+one representative for each label, places both in the same component/split, and
+reports the conflict count. It does not hide ambiguity or let identical features
+leak across boundaries. This deduplicated-sequence profile is reported explicitly;
+it is not presented as the conventional all-block HDFS benchmark.
 
 The default target ratios are 70/15/15. Realized ratios and class balance are reported rather than assumed because group constraints take priority over exact percentages.
 
@@ -70,4 +76,3 @@ Every publishable artifact contains:
 ## Serving constraints
 
 The API validates event count, event length, batch size, and body size. It returns request IDs, structured errors, model provenance, and nullable multi-task fields. `/health` proves process liveness; `/ready` only succeeds when a verified model is loaded.
-
